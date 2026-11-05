@@ -6,6 +6,8 @@ through `llama-server` and the OpenAI-compatible chat API.
 The model is LFM3-VL-2B (Q4\_K\_M) with its multimodal projector, fully
 offloaded to the NVIDIA GPU. The persona is Hashta, a cheerful companion.
 
+*p.s: Incomplete. Still under developement as of 5/11/2026*
+
 ## Project state
 
 **Built and working:** message store, embedding server, retrieval block, local
