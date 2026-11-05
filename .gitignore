@@ -1,0 +1,16 @@
+__pycache__/
+logs/
+.tmp/
+*.pyc
+memory.db*
+build/
+*.lnk
+
+# Session archives (transcript + media) and scraped pages, not source.
+references/
+
+# Local tooling
+.venv/
+venv/
+.vscode/
+Thumbs.db

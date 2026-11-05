@@ -1,0 +1,4 @@
+#include <windows.h>
+
+// The first icon group in the executable is what Explorer shows.
+1 ICON "app.ico"
