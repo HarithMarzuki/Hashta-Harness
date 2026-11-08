@@ -12,6 +12,7 @@
 #include "avatar.h"
 #include "chat.h"
 #include "com.h"
+#include "sprites.h"
 
 // The four bands, in DIPs. Recomputed on resize; the renderer and the hit
 // testing both read them, so there is one source of truth for the layout.
@@ -66,6 +67,14 @@ struct App {
     std::wstring chat_model = L"waiting";
     std::wstring embed_model = L"waiting";
 
+    // Animated avatar: one strip per state, loaded on first use, and the
+    // frame clock that drives it.
+    SpriteSheet sprite_slots[6];
+    bool sprite_attempted[6] = {};
+    AvatarState anim_state = AvatarState::Booting;
+    ULONGLONG anim_start = 0;
+    int anim_frame = 0;
+
     bool busy = false;
     bool connected = false;
     bool closing = false;
@@ -77,7 +86,6 @@ struct App {
     // turn and are handed to the assistant message that answers it.
     bool show_trace = false;  // off until Trace is pressed
     bool show_stats = false;
-    float pulse = 0.0f;
     std::vector<MemoryHit> pending_hits;
     int pending_tokens = 0;
     std::vector<ToolRow> pending_tools;
@@ -98,6 +106,7 @@ void AppResetConversation(App* app);
 void AppScroll(App* app, float delta_dips);
 void AppScrollToBottom(App* app);
 void AppUpdateComposer(App* app);
+void SyncAnimation(App* app);
 void AppToggleTrace(App* app);
 void AppRefreshStats(App* app);
 bool AppHitChip(App* app, float x, float y);

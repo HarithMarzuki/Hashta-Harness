@@ -9,6 +9,10 @@ build/
 # Session archives (transcript + media) and scraped pages, not source.
 references/
 
+#Drawings
+sprites/misc/
+sprites/needAdjustments/
+
 # Local tooling
 .venv/
 venv/

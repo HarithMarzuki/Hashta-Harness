@@ -55,24 +55,44 @@ void DrawModelStatus(App* app, const Metrics& m) {
 }
 
 void DrawAvatar(App* app, const Metrics& m) {
-    D2D1_RECT_F box = m.avatar;
-    if (app->avatar == AvatarState::Talking) {
-        // A gentle breathe while words are arriving; the only motion in the
-        // panel until real sprites exist.
-        const float scale = 1.0f + 0.025f * std::sin(app->pulse * 6.2831853f);
-        const float cx = (box.left + box.right) * 0.5f;
-        const float cy = (box.top + box.bottom) * 0.5f;
-        const float hw = (box.right - box.left) * 0.5f * scale;
-        const float hh = (box.bottom - box.top) * 0.5f * scale;
-        box = D2D1::RectF(cx - hw, cy - hh, cx + hw, cy + hh);
+    SyncAnimation(app);
+    const D2D1_RECT_F box = m.avatar;
+
+    const int index = (int)app->avatar;
+    if (!app->sprite_attempted[index]) {
+        app->sprite_attempted[index] = true;
+        LoadSpriteSheet(app->target.p, app->avatar, app->sprite_slots[index]);
     }
 
+    SpriteSheet& sheet = app->sprite_slots[index];
+    if (sheet.bitmap.p && sheet.frames > 0) {
+        const float radius = (box.right - box.left) * 0.11f;
+        Com<ID2D1RoundedRectangleGeometry> geometry;
+        Com<ID2D1Layer> layer;
+        if (SUCCEEDED(app->d2d->CreateRoundedRectangleGeometry(
+                D2D1::RoundedRect(box, radius, radius), geometry.out())) &&
+            SUCCEEDED(app->target->CreateLayer(layer.out()))) {
+            app->target->PushLayer(
+                D2D1::LayerParameters(D2D1::InfiniteRect(), geometry.p,
+                                      D2D1_ANTIALIAS_MODE_PER_PRIMITIVE),
+                layer.p);
+
+            const float frame_w = (float)sheet.frame_w;
+            const int frame = app->anim_frame % sheet.frames;
+            const D2D1_RECT_F source =
+                D2D1::RectF(frame * frame_w, 0.0f, (frame + 1) * frame_w,
+                            (float)sheet.frame_h);
+            app->target->DrawBitmap(sheet.bitmap.p, box, 1.0f,
+                                    D2D1_BITMAP_INTERPOLATION_MODE_LINEAR,
+                                    source);
+            app->target->PopLayer();
+            return;
+        }
+    }
+
+    // No strip on disk: the coloured placeholder still names the state.
     const float side = box.right - box.left;
     FillRound(app, box, side * 0.11f, avatar_color(app->avatar));
-
-    // The state name is the whole point of the placeholder: it proves the
-    // state machine is driving the draw before any sprite exists. Nothing
-    // else is ever drawn in here; errors live in the toast.
     Label(app, app->title.p, avatar_name(app->avatar), box, theme::accent_ink);
 }
 
@@ -310,5 +330,10 @@ void AppPaint(App* app) {
     if (hr == D2DERR_RECREATE_TARGET) {
         app->brush.reset();
         app->target.reset();
+        // Bitmaps belong to the old target; force a reload on the next paint.
+        for (int i = 0; i < 6; ++i) {
+            app->sprite_slots[i].bitmap.reset();
+            app->sprite_attempted[i] = false;
+        }
     }
 }

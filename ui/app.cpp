@@ -385,7 +385,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             UpdateFont(app);
             PositionEdit(app);
             SetFocus(app->edit);
-            SetTimer(hwnd, 1, 33, nullptr);  // avatar pulse
+            SetTimer(hwnd, 1, 33, nullptr);  // sprite frame clock + scroll ease
             return 0;
         }
 
@@ -502,12 +502,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
         case WM_TIMER: {
             if (!app) return 0;
-            bool repaint = false;
-            if (app->avatar == AvatarState::Talking) {
-                app->pulse += 0.045f;
-                if (app->pulse > 1.0f) app->pulse -= 1.0f;
-                repaint = true;
+            const int previous_frame = app->anim_frame;
+            const AvatarState previous_state = app->anim_state;
+            SyncAnimation(app);
+            if (app->anim_frame != previous_frame ||
+                app->anim_state != previous_state) {
+                // Repaint only the avatar band, and repaint the composer in
+                // the same cycle: the parent's present would otherwise wipe
+                // the hint the edit paints for itself, which blinks.
+                const Metrics m = MetricsFor(*app);
+                const float scale = (float)app->dpi / 96.0f;
+                RECT band = {0, 0, (LONG)(m.w * scale),
+                             (LONG)(m.avatar_h * scale)};
+                InvalidateRect(hwnd, &band, FALSE);
+                if (app->edit) InvalidateRect(app->edit, nullptr, TRUE);
             }
+            bool repaint = false;
             const float delta = app->scroll_target - app->scroll;
             if (std::fabs(delta) > 0.4f) {
                 app->scroll += delta * 0.35f;
@@ -689,6 +699,23 @@ void AppUpdateComposer(App* app) {
     InvalidateRect(app->hwnd, nullptr, FALSE);
 }
 
+void SyncAnimation(App* app) {
+    const ULONGLONG now = GetTickCount64();
+    if (app->avatar != app->anim_state) {
+        app->anim_state = app->avatar;
+        app->anim_start = now;
+        app->anim_frame = 0;
+        return;
+    }
+    const SpriteInfo& info = SpriteForState(app->avatar);
+    if (info.frames > 1 && info.fps > 0.0f) {
+        const float elapsed = (float)(now - app->anim_start) / 1000.0f;
+        app->anim_frame = (int)(elapsed * info.fps) % info.frames;
+    } else {
+        app->anim_frame = 0;
+    }
+}
+
 void AppSend(App* app) {
     if (app->busy) return;
     const std::wstring text = Trimmed(app->edit);
@@ -806,6 +833,7 @@ int AppRun(HINSTANCE instance) {
     App app;
     app.instance = instance;
     app.dpi = SystemDpi();
+    app.anim_start = GetTickCount64();
 
     if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED,
                                  __uuidof(ID2D1Factory), nullptr,
@@ -828,8 +856,9 @@ int AppRun(HINSTANCE instance) {
     const int y = (GetSystemMetrics(SM_CYSCREEN) - frame_h) / 2;
 
     HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Hashta",
-                                WS_OVERLAPPEDWINDOW, x, y, frame_w, frame_h,
-                                nullptr, nullptr, instance, &app);
+                                WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, x, y,
+                                frame_w, frame_h, nullptr, nullptr, instance,
+                                &app);
     if (!hwnd) return 1;
 
     ShowWindow(hwnd, SW_SHOW);

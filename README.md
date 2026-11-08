@@ -90,9 +90,11 @@ conversation and leaves long-term memory alone. Two lines at the top report each
 model's readiness - `Waiting` (red), `Loading` (amber), `Ready` (green), or
 `Failed`/`Disabled` in red - and the composer grows to five wrapped lines
 before scrolling inside itself. Errors surface in a toast just above the
-composer; nothing is ever printed inside the avatar square. The avatar square
-is a placeholder whose colour names the state - booting, thinking,
-remembering, talking, idle, error - until the real sprites exist.
+composer; nothing is ever printed inside the avatar. The avatar is an animated
+four-frame strip per state - `booting`, `idling`, `thinking`, `reading`,
+`error` in `sprites/` - drawn as a rounded card. `reading` is the remembering
+state, `idling` also covers talking, and `error` is a single still. If a sheet
+is missing the panel falls back to a coloured square that names the state.
 
 Keyboard: Enter sends, Shift+Enter breaks the line, Esc stops a running turn,
 Ctrl+N clears the conversation. `build.cmd -Shortcut` also places a shortcut

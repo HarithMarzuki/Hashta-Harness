@@ -41,7 +41,8 @@ $sources = @(
     'ui\app.cpp',
     'ui\render.cpp',
     'ui\chat.cpp',
-    'ui\avatar.cpp',
+    'ui\\avatar.cpp',
+    'ui\\sprites.cpp',
     'ui\net.cpp'
 ) | ForEach-Object { Join-Path $root $_ }
 
@@ -49,7 +50,7 @@ $exe = Join-Path $out 'hashta_ui.exe'
 & $gpp -std=c++20 -O2 -Wall -Wextra -Wno-cast-function-type `
     -DUNICODE -D_UNICODE -mwindows `
     -o $exe @sources $resources `
-    -ld2d1 -ldwrite -lcomctl32 -lole32 -luuid -luser32 -lgdi32 -lwinhttp `
+    -ld2d1 -ldwrite -lwindowscodecs -lcomctl32 -lole32 -luuid -luser32 -lgdi32 -lwinhttp `
     -static-libgcc -static-libstdc++
 if ($LASTEXITCODE -ne 0) { throw "g++ failed ($LASTEXITCODE)" }
 

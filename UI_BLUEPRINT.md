@@ -378,6 +378,44 @@ relative arguments instead.
    Behaviour is unchanged; the labels now say what the buttons do. The earlier
    phase records above still use the old names.
 
+## Sprites
+
+The avatar is an animated sprite sheet per state, four 512x512 frames in a
+horizontal strip (2048x512), except `error` which is a single 512x512 still.
+
+| State | File | Frames | fps |
+|---|---|---|---|
+| booting | `sprites/booting.png` | 4 | 2 |
+| idle | `sprites/idling.png` | 4 | 2 |
+| thinking | `sprites/thinking.png` | 4 | 2.5 |
+| remembering | `sprites/reading.png` | 4 | 2.5 |
+| talking | `sprites/idling.png` | 4 | 2 |
+| error | `sprites/error.png` | 1 | - |
+
+Talking reuses the idle strip by the artist's choice: replies animate with the
+idle pose. The sheets are opaque, so each frame is drawn clipped to the same
+rounded-square slot the placeholder used (a white portrait card); the art's
+framing differs slightly per state, which is the artist's composition.
+
+Loading is lazy per state on first paint, through WIC into an
+`ID2D1Bitmap`. The frame index comes from `GetTickCount64` at the state's fps,
+reset on every state change, and the 33 ms timer only invalidates when the
+index actually changes. A missing or malformed strip (width not a whole number
+of frames) falls back to the coloured placeholder with the state name, and a
+D2D device loss drops every bitmap so they reload on the next paint.
+
+Two repairs after first use of the sprites:
+
+- **The composer hint blinked at the animation rate.** Every frame repainted
+  the whole window, and the parent's present covered the child `EDIT` area, so
+  the hint the edit paints for itself was wiped and only came back on its next
+  repaint. Measured as two variants in the composer band; fixed by
+  `WS_CLIPCHILDREN`, invalidating only the avatar band on a frame change, and
+  re-invalidating the edit in the same cycle. Re-measured: one variant across
+  168 samples.
+- **The animations ran at double the intended speed**; fps is now half of the
+  first values (see the table).
+
 ## Open decisions
 
 1. JSON in C++: hand-written `ui/json.h` (about 250 lines, tested against

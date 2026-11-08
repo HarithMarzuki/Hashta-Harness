@@ -294,6 +294,10 @@ bool EngineStart() {
     return true;
 }
 
+std::wstring PanelRoot() {
+    return ProjectRoot();
+}
+
 void EngineStop() {
     if (!g_process) {
         if (g_job) {

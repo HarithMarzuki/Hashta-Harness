@@ -12,6 +12,10 @@ constexpr UINT WM_APP_NET = WM_APP + 3;    // wParam: 1 connected, 0 dropped
 bool EngineStart();
 void EngineStop();
 
+// The project directory: the folder holding engine_server.py and sprites/.
+// Empty when the executable cannot find it.
+std::wstring PanelRoot();
+
 void EventsStart(HWND notify);
 void EventsStop();
 
